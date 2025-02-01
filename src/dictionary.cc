@@ -20,8 +20,8 @@
 namespace fasttext {
 
 const std::string Dictionary::EOS = "</s>";
-const std::string Dictionary::BOW = "<";
-const std::string Dictionary::EOW = ">";
+const std::string Dictionary::BOW = "";
+const std::string Dictionary::EOW = "";
 
 Dictionary::Dictionary(std::shared_ptr<Args> args)
     : args_(args),
@@ -30,7 +30,13 @@ Dictionary::Dictionary(std::shared_ptr<Args> args)
       nwords_(0),
       nlabels_(0),
       ntokens_(0),
-      pruneidx_size_(-1) {}
+      pruneidx_size_(-1) {
+  const auto status = processor_.Load("/path/to/fasttext/model");
+  if (!status.ok()) {
+    std::cerr << status.ToString() << std::endl;
+    // error
+  }
+}
 
 Dictionary::Dictionary(std::shared_ptr<Args> args, std::istream& in)
     : args_(args),
@@ -40,6 +46,11 @@ Dictionary::Dictionary(std::shared_ptr<Args> args, std::istream& in)
       ntokens_(0),
       pruneidx_size_(-1) {
   load(in);
+  const auto status = processor_.Load("/path/to/fasttext/model");
+  if (!status.ok()) {
+    std::cerr << status.ToString() << std::endl;
+    // error
+  }
 }
 
 int32_t Dictionary::find(const std::string_view w) const {
@@ -173,23 +184,14 @@ void Dictionary::computeSubwords(
     const std::string& word,
     std::vector<int32_t>& ngrams,
     std::vector<std::string>* substrings) const {
-  for (size_t i = 0; i < word.size(); i++) {
-    std::string ngram;
-    if ((word[i] & 0xC0) == 0x80) {
-      continue;
-    }
-    for (size_t j = i, n = 1; j < word.size() && n <= args_->maxn; n++) {
-      ngram.push_back(word[j++]);
-      while (j < word.size() && (word[j] & 0xC0) == 0x80) {
-        ngram.push_back(word[j++]);
-      }
-      if (n >= args_->minn && !(n == 1 && (i == 0 || j == word.size()))) {
-        int32_t h = hash(ngram) % args_->bucket;
-        pushHash(ngrams, h);
-        if (substrings) {
-          substrings->push_back(ngram);
-        }
-      }
+  std::vector<std::string> pieces;
+  processor_.Encode(word, &pieces);
+  for (size_t i = 0; i < pieces.size(); i++) {
+    const std::string& piece = pieces[i];
+    int32_t h = hash(piece) % args_->bucket;
+    pushHash(ngrams, h);
+    if (substrings) {
+      substrings->push_back(piece);
     }
   }
 }

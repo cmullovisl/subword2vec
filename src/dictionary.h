@@ -17,6 +17,8 @@
 #include <unordered_map>
 #include <vector>
 
+#include <sentencepiece_processor.h>
+
 #include "args.h"
 #include "real.h"
 
@@ -61,6 +63,8 @@ class Dictionary {
       std::vector<int32_t>& line,
       const std::vector<int32_t>& hashes,
       int32_t n) const;
+
+  sentencepiece::SentencePieceProcessor processor_;
 
  public:
   static const std::string EOS;
