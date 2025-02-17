@@ -73,6 +73,10 @@ class Args {
   int autotuneDuration;
   std::string autotuneModelSize;
 
+  std::string validationFile;
+  int earlyStop;
+  int validateEvery;
+
   void parseArgs(const std::vector<std::string>& args);
   void printHelp();
   void printBasicHelp();

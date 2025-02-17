@@ -44,6 +44,10 @@ class FastText {
   std::shared_ptr<Model> model_;
   std::atomic<int64_t> tokenCount_{};
   std::atomic<real> loss_{};
+  std::atomic<real> valid_loss_{};
+  //std::atomic<real> best_loss_{};
+  real best_loss_{};
+  std::atomic<int64_t> staleCounter_{};
   std::chrono::steady_clock::time_point start_;
   bool quant_;
   int32_t version;
@@ -54,6 +58,7 @@ class FastText {
   bool checkModel(std::istream&);
   void startThreads(const TrainCallback& callback = {});
   void addInputVector(Vector&, int32_t) const;
+  void validate();
   void trainThread(int32_t, const TrainCallback& callback);
   std::vector<std::pair<real, std::string>> getNN(
       const DenseMatrix& wordVectors,
@@ -72,8 +77,8 @@ class FastText {
       real lr,
       const std::vector<int32_t>& line,
       const std::vector<int32_t>& labels);
-  void cbow(Model::State& state, real lr, const std::vector<int32_t>& line);
-  void skipgram(Model::State& state, real lr, const std::vector<int32_t>& line);
+  void cbow(Model::State& state, real lr, const std::vector<int32_t>& line, bool update = true);
+  void skipgram(Model::State& state, real lr, const std::vector<int32_t>& line, bool update = true);
   std::vector<int32_t> selectEmbeddings(int32_t cutoff) const;
   void precomputeWordVectors(DenseMatrix& wordVectors);
   bool keepTraining(const int64_t ntokens) const;

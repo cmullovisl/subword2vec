@@ -298,6 +298,8 @@ void FastText::printInfo(real progress, real loss, std::ostream& log_stream) {
   log_stream << " words/sec/thread: " << std::setw(7) << int64_t(wst);
   log_stream << " lr: " << std::setw(9) << std::setprecision(6) << lr;
   log_stream << " avg.loss: " << std::setw(9) << std::setprecision(6) << loss;
+  log_stream << " val.loss: " << std::setw(9) << std::setprecision(6) << valid_loss_;
+  log_stream << " best.loss: " << std::setw(9) << std::setprecision(6) << best_loss_;
   log_stream << " ETA: " << utils::ClockPrint(eta);
   log_stream << std::flush;
 }
@@ -387,7 +389,8 @@ void FastText::supervised(
 void FastText::cbow(
     Model::State& state,
     real lr,
-    const std::vector<int32_t>& line) {
+    const std::vector<int32_t>& line,
+    bool update) {
   std::vector<int32_t> bow;
   std::uniform_int_distribution<> uniform(1, args_->ws);
   for (int32_t w = 0; w < line.size(); w++) {
@@ -399,21 +402,30 @@ void FastText::cbow(
         bow.insert(bow.end(), ngrams.cbegin(), ngrams.cend());
       }
     }
-    model_->update(bow, line, w, lr, state);
+    if (update) {
+      model_->update(bow, line, w, lr, state);
+    } else {
+      model_->computeLoss(bow, line, w, state);
+    }
   }
 }
 
 void FastText::skipgram(
     Model::State& state,
     real lr,
-    const std::vector<int32_t>& line) {
+    const std::vector<int32_t>& line,
+    bool update) {
   std::uniform_int_distribution<> uniform(1, args_->ws);
   for (int32_t w = 0; w < line.size(); w++) {
     int32_t boundary = uniform(state.rng);
     const std::vector<int32_t>& ngrams = dict_->getSubwords(line[w]);
     for (int32_t c = -boundary; c <= boundary; c++) {
       if (c != 0 && w + c >= 0 && w + c < line.size()) {
-        model_->update(ngrams, line, w + c, lr, state);
+        if (update) {
+          model_->update(ngrams, line, w + c, lr, state);
+        } else {
+          model_->computeLoss(ngrams, line, w + c, state);
+        }
       }
     }
   }
@@ -626,7 +638,49 @@ std::vector<std::pair<real, std::string>> FastText::getAnalogies(
 }
 
 bool FastText::keepTraining(const int64_t ntokens) const {
-  return tokenCount_ < args_->epoch * ntokens && !trainException_;
+  return tokenCount_ < args_->epoch * ntokens && !trainException_ && staleCounter_ < args_->earlyStop;
+}
+
+//void validate(Model::State& state) {
+void FastText::validate() {
+  std::ifstream vfs(args_->validationFile);
+  if (!vfs.is_open()) {
+    throw std::invalid_argument("Validation file cannot be opened!");
+  }
+  Model::State state(args_->dim, output_->size(0), args_->seed);
+  std::vector<int32_t> line, labels;
+  //real totalLoss = 0.0;
+  //int64_t tokenCount = 0;
+  while (true) {
+    int32_t tokensRead;
+    if (args_->model == model_name::sup) {
+      tokensRead = dict_->getLine(vfs, line, labels);
+      if (tokensRead == 0)
+        break;
+      supervised(state, 0.0, line, labels);
+    } else if (args_->model == model_name::cbow) {
+      tokensRead = dict_->getLine(vfs, line, state.rng);
+      if (tokensRead == 0)
+        break;
+      cbow(state, 0.0, line, false);
+    } else if (args_->model == model_name::sg) {
+      tokensRead = dict_->getLine(vfs, line, state.rng);
+      if (tokensRead == 0)
+        break;
+      skipgram(state, 0.0, line, false);
+    }
+    //tokenCount += tokensRead;
+    //totalLoss += state.getLoss();
+  }
+
+  //valid_loss_ = totalLoss / tokenCount;
+  valid_loss_ = state.getLoss();
+  if (valid_loss_ >= best_loss_) {
+    staleCounter_++;
+  } else {
+    staleCounter_ = 0;
+    best_loss_ = valid_loss_;
+  }
 }
 
 void FastText::trainThread(int32_t threadId, const TrainCallback& callback) {
@@ -639,6 +693,7 @@ void FastText::trainThread(int32_t threadId, const TrainCallback& callback) {
   int64_t localTokenCount = 0;
   std::vector<int32_t> line, labels;
   uint64_t callbackCounter = 0;
+  uint64_t validationCounter = 0;
   try {
     while (keepTraining(ntokens)) {
       real progress = real(tokenCount_) / (args_->epoch * ntokens);
@@ -648,7 +703,12 @@ void FastText::trainThread(int32_t threadId, const TrainCallback& callback) {
         int64_t eta;
         std::tie<double, double, int64_t>(wst, lr, eta) =
             progressInfo(progress);
+        //callback(progress, loss_, wst, lr, eta, valid_loss_);
         callback(progress, loss_, wst, lr, eta);
+      }
+      if (args_->validationFile != "" && threadId == 0 && (validationCounter++ % args_->validateEvery) == 0) {
+          //validate(state);
+          validate();
       }
       real lr = args_->lr * (1.0 - progress);
       if (args_->model == model_name::sup) {
@@ -780,6 +840,8 @@ void FastText::startThreads(const TrainCallback& callback) {
   start_ = std::chrono::steady_clock::now();
   tokenCount_ = 0;
   loss_ = -1;
+  valid_loss_ = -1;
+  best_loss_ = 100000;
   trainException_ = nullptr;
   std::vector<std::thread> threads;
   if (args_->thread > 1) {
