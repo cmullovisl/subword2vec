@@ -73,6 +73,12 @@ class Model {
       real lr,
       State& state,
       bool learn_pdw = false);
+  void computeLoss(
+      const std::vector<int32_t>& input,
+      const std::vector<int32_t>& targets,
+      int32_t targetIndex,
+      const std::vector<int32_t>& pos,
+      State& state);
   void computeHidden(const std::vector<int32_t>& input, const std::vector<int32_t>& pos, State& state) const;
 
   real std_log(real) const;
