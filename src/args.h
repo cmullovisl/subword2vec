@@ -59,6 +59,7 @@ class Args {
   std::string pretrainedVectors;
   bool saveOutput;
   int seed;
+  std::string spmModel;
 
   bool qout;
   bool retrain;

@@ -31,7 +31,7 @@ Dictionary::Dictionary(std::shared_ptr<Args> args)
       nlabels_(0),
       ntokens_(0),
       pruneidx_size_(-1) {
-  const auto status = processor_.Load("/path/to/fasttext/model");
+  const auto status = processor_.Load(args->spmModel);
   if (!status.ok()) {
     std::cerr << status.ToString() << std::endl;
     // error
@@ -46,7 +46,7 @@ Dictionary::Dictionary(std::shared_ptr<Args> args, std::istream& in)
       ntokens_(0),
       pruneidx_size_(-1) {
   load(in);
-  const auto status = processor_.Load("/path/to/fasttext/model");
+  const auto status = processor_.Load(args->spmModel);
   if (!status.ok()) {
     std::cerr << status.ToString() << std::endl;
     // error

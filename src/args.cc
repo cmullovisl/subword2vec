@@ -40,6 +40,7 @@ Args::Args() {
   pretrainedVectors = "";
   saveOutput = false;
   seed = 0;
+  spmModel = "";
 
   qout = false;
   retrain = false;
@@ -189,6 +190,8 @@ void Args::parseArgs(const std::vector<std::string>& args) {
         ai--;
       } else if (args[ai] == "-seed") {
         seed = std::stoi(args.at(ai + 1));
+      } else if (args[ai] == "-spm") {
+        spmModel = std::string(args.at(ai + 1));
       } else if (args[ai] == "-qnorm") {
         qnorm = true;
         ai--;
@@ -289,7 +292,8 @@ void Args::printTrainingHelp() {
       << pretrainedVectors << "]\n"
       << "  -saveOutput         whether output params should be saved ["
       << boolToString(saveOutput) << "]\n"
-      << "  -seed               random generator seed  [" << seed << "]\n";
+      << "  -seed               random generator seed  [" << seed << "]\n"
+      << "  -spm                sentencepiece model  [" << spmModel << "]\n";
 }
 
 void Args::printAutotuneHelp() {
