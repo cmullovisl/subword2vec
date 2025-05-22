@@ -50,12 +50,12 @@ class QuantMatrix : public Matrix {
 
   real dotRow(const Vector&, int64_t) const override;
   void addVectorToRow(const Vector&, int64_t, real) override;
-  void addVectorToRow(const Vector&, int64_t, std::shared_ptr<DenseMatrix>, int32_t) {};
+  void addVectorToRow(const Vector&, int64_t, const DenseMatrix&, int32_t) {};
   void addRowToVector(Vector& x, int32_t i) const override;
   void addRowToVector(Vector& x, int32_t i, real a) const override;
-  void addRowToVector(Vector& x, int32_t i, std::shared_ptr<DenseMatrix> W, int32_t k) const {};
+  void addRowToVector(Vector& x, int32_t i, const DenseMatrix& W, int32_t k) const {};
   void averageRowsToVector(Vector& x, const std::vector<int32_t>& rows) const override;
-  void averageRowsTimesWeightsToVector(Vector& x, const std::vector<int32_t>& rows, std::shared_ptr<DenseMatrix> weights, const std::vector<int32_t>& pos) const {};
+  void averageRowsTimesWeightsToVector(Vector& x, const std::vector<int32_t>& rows, const DenseMatrix& weights, const std::vector<int32_t>& pos) const {};
   void save(std::ostream&) const override;
   void load(std::istream&) override;
   void dump(std::ostream&) const override;

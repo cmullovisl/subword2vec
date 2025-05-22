@@ -132,12 +132,12 @@ void DenseMatrix::addVectorToRow(const Vector& vec, int64_t i, real a) {
   }
 }
 
-void DenseMatrix::addVectorToRow(const Vector& vec, int64_t i, std::shared_ptr<DenseMatrix> W, int32_t k) {
+void DenseMatrix::addVectorToRow(const Vector& vec, int64_t i, const DenseMatrix& W, int32_t k) {
   assert(i >= 0);
   assert(i < m_);
   assert(vec.size() == n_);
   for (int64_t j = 0; j < n_; j++) {
-    data_[i * n_ + j] += W->at(k, j) * vec[j];
+    data_[i * n_ + j] += W.at(k, j) * vec[j];
   }
 }
 
@@ -159,12 +159,12 @@ void DenseMatrix::addRowToVector(Vector& x, int32_t i, real a) const {
   }
 }
 
-void DenseMatrix::addRowToVector(Vector& x, int32_t i, std::shared_ptr<DenseMatrix> W, int32_t k) const {
+void DenseMatrix::addRowToVector(Vector& x, int32_t i, const DenseMatrix& W, int32_t k) const {
   assert(i >= 0);
   assert(i < this->size(0));
   assert(x.size() == this->size(1));
   for (int64_t j = 0; j < n_; j++) {
-    x[j] += W->at(k, j) * at(i, j);
+    x[j] += W.at(k, j) * at(i, j);
   }
 }
 
@@ -254,7 +254,7 @@ void DenseMatrix::averageRowsToVector(Vector& x, const std::vector<int32_t>& row
   x.mul(1.0 / rows.size());
 }
 
-void DenseMatrix::averageRowsTimesWeightsToVector(Vector& x, const std::vector<int32_t>& rows, std::shared_ptr<DenseMatrix> weights, const std::vector<int32_t>& pos) const {
+void DenseMatrix::averageRowsTimesWeightsToVector(Vector& x, const std::vector<int32_t>& rows, const DenseMatrix& weights, const std::vector<int32_t>& pos) const {
 #if defined(__AVX512F__) || defined(__AVX__) || defined(__SSE__)
   switch (cols()) {
     case 512:

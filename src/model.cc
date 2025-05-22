@@ -44,10 +44,9 @@ Model::Model(
 void Model::computeHidden(const std::vector<int32_t>& input, const std::vector<int32_t>& pos, State& state)
     const {
   Vector& hidden = state.hidden;
-  static_assert(sizeof(DenseMatrix) > 0, "DenseMatrix is incomplete!");
   //wi_->averageRowsToVector(hidden, input);
   //int32_t k_0 = wp_->rows() / 2 - middle;
-  wi_->averageRowsTimesWeightsToVector(hidden, input, wp_, pos);
+  wi_->averageRowsTimesWeightsToVector(hidden, input, *wp_, pos);
 }
 
 void Model::predict(
@@ -96,7 +95,7 @@ void Model::update(
   auto itPos = pos.cbegin();
   for (auto it = input.cbegin(); it != input.cend(); ++it, ++itPos) {
     //wi_->addVectorToRow(grad, *it, 1.0);
-    wi_->addVectorToRow(grad, *it, wp_, *itPos);
+    wi_->addVectorToRow(grad, *it, *wp_, *itPos);
   }
 }
 
