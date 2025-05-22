@@ -41,6 +41,7 @@ class FastText {
   std::shared_ptr<Dictionary> dict_;
   std::shared_ptr<Matrix> input_;
   std::shared_ptr<Matrix> output_;
+  std::shared_ptr<DenseMatrix> position_weights_;
   std::shared_ptr<Model> model_;
   std::atomic<int64_t> tokenCount_{};
   std::atomic<real> loss_{};

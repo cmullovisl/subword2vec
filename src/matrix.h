@@ -8,6 +8,7 @@
 
 #pragma once
 
+#include <memory>
 #include <cstdint>
 #include <istream>
 #include <ostream>
@@ -17,6 +18,8 @@
 #include "real.h"
 
 namespace fasttext {
+
+class DenseMatrix;
 
 class Vector;
 
@@ -34,9 +37,12 @@ class Matrix {
 
   virtual real dotRow(const Vector&, int64_t) const = 0;
   virtual void addVectorToRow(const Vector&, int64_t, real) = 0;
+  virtual void addVectorToRow(const Vector&, int64_t, std::shared_ptr<DenseMatrix>, int32_t) = 0;
   virtual void addRowToVector(Vector& x, int32_t i) const = 0;
   virtual void addRowToVector(Vector& x, int32_t i, real a) const = 0;
+  virtual void addRowToVector(Vector& x, int32_t i, std::shared_ptr<DenseMatrix> W, int32_t k) const = 0;
   virtual void averageRowsToVector(Vector& x, const std::vector<int32_t>& rows) const = 0;
+  virtual void averageRowsTimesWeightsToVector(Vector& x, const std::vector<int32_t>& rows, std::shared_ptr<DenseMatrix> weights, const std::vector<int32_t>& pos) const = 0;
   virtual void save(std::ostream&) const = 0;
   virtual void load(std::istream&) = 0;
   virtual void dump(std::ostream&) const = 0;

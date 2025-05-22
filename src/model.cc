@@ -35,14 +35,19 @@ void Model::State::incrementNExamples(real loss) {
 Model::Model(
     std::shared_ptr<Matrix> wi,
     std::shared_ptr<Matrix> wo,
+    std::shared_ptr<DenseMatrix> wp,
     std::shared_ptr<Loss> loss,
     bool normalizeGradient)
-    : wi_(wi), wo_(wo), loss_(loss), normalizeGradient_(normalizeGradient) {}
+    : wi_(wi), wo_(wo), wp_(wp), loss_(loss), normalizeGradient_(normalizeGradient) {}
 
-void Model::computeHidden(const std::vector<int32_t>& input, State& state)
+//void Model::computeHidden(const std::vector<int32_t>& input, int32_t middle, State& state)
+void Model::computeHidden(const std::vector<int32_t>& input, const std::vector<int32_t>& pos, State& state)
     const {
   Vector& hidden = state.hidden;
-  wi_->averageRowsToVector(hidden, input);
+  static_assert(sizeof(DenseMatrix) > 0, "DenseMatrix is incomplete!");
+  //wi_->averageRowsToVector(hidden, input);
+  //int32_t k_0 = wp_->rows() / 2 - middle;
+  wi_->averageRowsTimesWeightsToVector(hidden, input, wp_, pos);
 }
 
 void Model::predict(
@@ -57,7 +62,7 @@ void Model::predict(
     throw std::invalid_argument("k needs to be 1 or higher!");
   }
   heap.reserve(k + 1);
-  computeHidden(input, state);
+  computeHidden(input, std::vector<int32_t>{}, state);
 
   loss_->predict(k, threshold, heap, state);
 }
@@ -66,12 +71,14 @@ void Model::update(
     const std::vector<int32_t>& input,
     const std::vector<int32_t>& targets,
     int32_t targetIndex,
+    //int32_t middle,
+    const std::vector<int32_t>& pos,
     real lr,
     State& state) {
   if (input.size() == 0) {
     return;
   }
-  computeHidden(input, state);
+  computeHidden(input, pos, state);
 
   Vector& grad = state.grad;
   grad.zero();
@@ -81,8 +88,15 @@ void Model::update(
   if (normalizeGradient_) {
     grad.mul(1.0 / input.size());
   }
-  for (auto it = input.cbegin(); it != input.cend(); ++it) {
-    wi_->addVectorToRow(grad, *it, 1.0);
+  //auto k = wp_->rows() / 2 - middle;
+  //for (auto it = input.cbegin(); it != input.cend(); ++it, ++k) {
+  //  wi_->addVectorToRow(grad, *it, 1.0);
+  //  //wi_->addVectorToRow(grad, *it, wp_, k);
+  //}
+  auto itPos = pos.cbegin();
+  for (auto it = input.cbegin(); it != input.cend(); ++it, ++itPos) {
+    //wi_->addVectorToRow(grad, *it, 1.0);
+    wi_->addVectorToRow(grad, *it, wp_, *itPos);
   }
 }
 

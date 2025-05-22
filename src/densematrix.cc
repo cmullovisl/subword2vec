@@ -132,6 +132,15 @@ void DenseMatrix::addVectorToRow(const Vector& vec, int64_t i, real a) {
   }
 }
 
+void DenseMatrix::addVectorToRow(const Vector& vec, int64_t i, std::shared_ptr<DenseMatrix> W, int32_t k) {
+  assert(i >= 0);
+  assert(i < m_);
+  assert(vec.size() == n_);
+  for (int64_t j = 0; j < n_; j++) {
+    data_[i * n_ + j] += W->at(k, j) * vec[j];
+  }
+}
+
 void DenseMatrix::addRowToVector(Vector& x, int32_t i) const {
   assert(i >= 0);
   assert(i < this->size(0));
@@ -147,6 +156,15 @@ void DenseMatrix::addRowToVector(Vector& x, int32_t i, real a) const {
   assert(x.size() == this->size(1));
   for (int64_t j = 0; j < n_; j++) {
     x[j] += a * at(i, j);
+  }
+}
+
+void DenseMatrix::addRowToVector(Vector& x, int32_t i, std::shared_ptr<DenseMatrix> W, int32_t k) const {
+  assert(i >= 0);
+  assert(i < this->size(0));
+  assert(x.size() == this->size(1));
+  for (int64_t j = 0; j < n_; j++) {
+    x[j] += W->at(k, j) * at(i, j);
   }
 }
 
@@ -232,6 +250,39 @@ void DenseMatrix::averageRowsToVector(Vector& x, const std::vector<int32_t>& row
   x.zero();
   for (auto it = rows.cbegin(); it != rows.cend(); ++it) {
     addRowToVector(x, *it);
+  }
+  x.mul(1.0 / rows.size());
+}
+
+void DenseMatrix::averageRowsTimesWeightsToVector(Vector& x, const std::vector<int32_t>& rows, std::shared_ptr<DenseMatrix> weights, const std::vector<int32_t>& pos) const {
+#if defined(__AVX512F__) || defined(__AVX__) || defined(__SSE__)
+  switch (cols()) {
+    case 512:
+      // Maximum number that can fit all in registers on AVX512F.
+      averageRowsFast<512>(x, rows, *this);
+      return;
+    case 256:
+      averageRowsFast<256>(x, rows, *this);
+      return;
+    case 64:
+      averageRowsFast<64>(x, rows, *this);
+      return;
+    case 32:
+      averageRowsFast<32>(x, rows, *this);
+      return;
+    case 16:
+      averageRowsFast<16>(x, rows, *this);
+      return;
+  }
+#endif
+  x.zero();
+  //int k = k_0;
+  //for (auto it = rows.cbegin(); it != rows.cend(); ++it, ++k) {
+  //for (auto it = rows.cbegin(), auto itPos = pos.cbegin(); it != rows.cend(); ++it, ++itPos) {
+  auto itPos = pos.cbegin();
+  for (auto it = rows.cbegin(); it != rows.cend(); ++it, ++itPos) {
+    //addRowToVector(x, *it, weights, k);
+    addRowToVector(x, *it, weights, *itPos);
   }
   x.mul(1.0 / rows.size());
 }

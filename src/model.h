@@ -14,6 +14,7 @@
 #include <vector>
 
 #include "matrix.h"
+#include "densematrix.h"
 #include "real.h"
 #include "utils.h"
 #include "vector.h"
@@ -26,6 +27,7 @@ class Model {
  protected:
   std::shared_ptr<Matrix> wi_;
   std::shared_ptr<Matrix> wo_;
+  std::shared_ptr<DenseMatrix> wp_;
   std::shared_ptr<Loss> loss_;
   bool normalizeGradient_;
 
@@ -33,6 +35,7 @@ class Model {
   Model(
       std::shared_ptr<Matrix> wi,
       std::shared_ptr<Matrix> wo,
+      std::shared_ptr<DenseMatrix> wp,
       std::shared_ptr<Loss> loss,
       bool normalizeGradient);
   Model(const Model& model) = delete;
@@ -66,9 +69,10 @@ class Model {
       const std::vector<int32_t>& input,
       const std::vector<int32_t>& targets,
       int32_t targetIndex,
+      const std::vector<int32_t>& pos,
       real lr,
       State& state);
-  void computeHidden(const std::vector<int32_t>& input, State& state) const;
+  void computeHidden(const std::vector<int32_t>& input, const std::vector<int32_t>& pos, State& state) const;
 
   real std_log(real) const;
 

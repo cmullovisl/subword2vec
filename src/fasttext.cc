@@ -233,7 +233,7 @@ std::vector<int64_t> FastText::getTargetCounts() const {
 void FastText::buildModel() {
   auto loss = createLoss(output_);
   bool normalizeGradient = (args_->model == model_name::sup);
-  model_ = std::make_shared<Model>(input_, output_, loss, normalizeGradient);
+  model_ = std::make_shared<Model>(input_, output_, position_weights_, loss, normalizeGradient);
 }
 
 void FastText::loadModel(std::istream& in) {
@@ -351,7 +351,7 @@ void FastText::quantize(const Args& qargs, const TrainCallback& callback) {
       args_->thread = qargs.thread;
       args_->verbose = qargs.verbose;
       auto loss = createLoss(output_);
-      model_ = std::make_shared<Model>(input, output, loss, normalizeGradient);
+      model_ = std::make_shared<Model>(input, output, nullptr, loss, normalizeGradient);
       startThreads(callback);
     }
   }
@@ -364,7 +364,7 @@ void FastText::quantize(const Args& qargs, const TrainCallback& callback) {
   }
   quant_ = true;
   auto loss = createLoss(output_);
-  model_ = std::make_shared<Model>(input_, output_, loss, normalizeGradient);
+  model_ = std::make_shared<Model>(input_, output_, nullptr, loss, normalizeGradient);
 }
 
 void FastText::supervised(
@@ -376,11 +376,11 @@ void FastText::supervised(
     return;
   }
   if (args_->loss == loss_name::ova) {
-    model_->update(line, labels, Model::kAllLabelsAsTarget, lr, state);
+    model_->update(line, labels, Model::kAllLabelsAsTarget, std::vector<int32_t>{}, lr, state);
   } else {
     std::uniform_int_distribution<> uniform(0, labels.size() - 1);
     int32_t i = uniform(state.rng);
-    model_->update(line, labels, i, lr, state);
+    model_->update(line, labels, i, std::vector<int32_t>{}, lr, state);
   }
 }
 
@@ -389,33 +389,20 @@ void FastText::cbow(
     real lr,
     const std::vector<int32_t>& line) {
   std::vector<int32_t> bow;
+  std::vector<int32_t> pos;
   std::uniform_int_distribution<> uniform(1, args_->ws);
   for (int32_t w = 0; w < line.size(); w++) {
     int32_t boundary = uniform(state.rng);
     bow.clear();
+    pos.clear();
     for (int32_t c = -boundary; c <= boundary; c++) {
       if (c != 0 && w + c >= 0 && w + c < line.size()) {
         const std::vector<int32_t>& ngrams = dict_->getSubwords(line[w + c]);
         bow.insert(bow.end(), ngrams.cbegin(), ngrams.cend());
+        pos.insert(pos.end(), ngrams.size(), c > 0 ? args_->ws + c - 1 : args_->ws + c);
       }
     }
-    model_->update(bow, line, w, lr, state);
-  }
-}
-
-void FastText::skipgram(
-    Model::State& state,
-    real lr,
-    const std::vector<int32_t>& line) {
-  std::uniform_int_distribution<> uniform(1, args_->ws);
-  for (int32_t w = 0; w < line.size(); w++) {
-    int32_t boundary = uniform(state.rng);
-    const std::vector<int32_t>& ngrams = dict_->getSubwords(line[w]);
-    for (int32_t c = -boundary; c <= boundary; c++) {
-      if (c != 0 && w + c >= 0 && w + c < line.size()) {
-        model_->update(ngrams, line, w + c, lr, state);
-      }
-    }
+    model_->update(bow, line, w, pos, lr, state);
   }
 }
 
@@ -657,9 +644,6 @@ void FastText::trainThread(int32_t threadId, const TrainCallback& callback) {
       } else if (args_->model == model_name::cbow) {
         localTokenCount += dict_->getLine(ifs, line, state.rng);
         cbow(state, lr, line);
-      } else if (args_->model == model_name::sg) {
-        localTokenCount += dict_->getLine(ifs, line, state.rng);
-        skipgram(state, lr, line);
       }
       if (localTokenCount > args_->lrUpdateRate) {
         tokenCount_ += localTokenCount;
@@ -760,11 +744,13 @@ void FastText::train(const Args& args, const TrainCallback& callback) {
   } else {
     input_ = createRandomMatrix();
   }
+  position_weights_ = std::make_shared<DenseMatrix>(2 * args_->ws, args_->dim);
+  position_weights_->uniform(1.0 / args_->dim, args_->thread, args_->seed);
   output_ = createTrainOutputMatrix();
   quant_ = false;
   auto loss = createLoss(output_);
   bool normalizeGradient = (args_->model == model_name::sup);
-  model_ = std::make_shared<Model>(input_, output_, loss, normalizeGradient);
+  model_ = std::make_shared<Model>(input_, output_, position_weights_, loss, normalizeGradient);
   startThreads(callback);
 }
 
