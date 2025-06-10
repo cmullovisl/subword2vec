@@ -57,6 +57,7 @@ class Args {
   std::string label;
   int verbose;
   std::string pretrainedVectors;
+  std::string pretrainedPositionWeights;
   bool saveOutput;
   int seed;
 

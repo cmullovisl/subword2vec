@@ -745,7 +745,27 @@ void FastText::train(const Args& args, const TrainCallback& callback) {
     input_ = createRandomMatrix();
   }
   position_weights_ = std::make_shared<DenseMatrix>(2 * args_->ws, args_->dim);
-  position_weights_->uniform(1.0 / args_->dim, args_->thread, args_->seed);
+  position_weights_->one();
+  //position_weights_->uniform(1.0 / args_->dim, args_->thread, args_->seed);
+  //position_weights_->uniform(std::sqrt(3.0) / std::sqrt(args_->dim), args_->thread, args_->seed);
+  if (!args_->pretrainedPositionWeights.empty()) {
+    std::ifstream pdwfs(args_->pretrainedPositionWeights, std::ifstream::binary);
+    position_weights_->load(pdwfs);
+    pdwfs.close();
+
+    real sum_of_pos = 0;
+    for (size_t i = 0; i < position_weights_->size(0); i++) {
+      for (size_t j = 0; j < position_weights_->size(1); j++) {
+        sum_of_pos += position_weights_->at(i, j);
+      }
+    }
+    sum_of_pos /= position_weights_->size(0) * position_weights_->size(1);
+    for (size_t i = 0; i < position_weights_->size(0); i++) {
+      for (size_t j = 0; j < position_weights_->size(1); j++) {
+        position_weights_->at(i, j) /= sum_of_pos;
+      }
+    }
+  }
   output_ = createTrainOutputMatrix();
   quant_ = false;
   auto loss = createLoss(output_);

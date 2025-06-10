@@ -38,6 +38,7 @@ Args::Args() {
   label = "__label__";
   verbose = 2;
   pretrainedVectors = "";
+  pretrainedPositionWeights = "";
   saveOutput = false;
   seed = 0;
 
@@ -184,6 +185,8 @@ void Args::parseArgs(const std::vector<std::string>& args) {
         verbose = std::stoi(args.at(ai + 1));
       } else if (args[ai] == "-pretrainedVectors") {
         pretrainedVectors = std::string(args.at(ai + 1));
+      } else if (args[ai] == "-pretrainedPositionWeights") {
+        pretrainedPositionWeights = std::string(args.at(ai + 1));
       } else if (args[ai] == "-saveOutput") {
         saveOutput = true;
         ai--;
@@ -287,6 +290,8 @@ void Args::printTrainingHelp() {
       << "  -pretrainedVectors  pretrained word vectors for supervised "
          "learning ["
       << pretrainedVectors << "]\n"
+      << "  -pretrainedPositionWeights  pretrained position weights ["
+      << pretrainedPositionWeights << "]\n"
       << "  -saveOutput         whether output params should be saved ["
       << boolToString(saveOutput) << "]\n"
       << "  -seed               random generator seed  [" << seed << "]\n";
