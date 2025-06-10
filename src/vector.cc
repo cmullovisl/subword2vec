@@ -23,6 +23,10 @@ void Vector::zero() {
   std::fill(data_.begin(), data_.end(), 0.0);
 }
 
+void Vector::fill(real a) {
+  std::fill(data_.begin(), data_.end(), a);
+}
+
 real Vector::norm() const {
   real sum = 0;
   for (int64_t i = 0; i < size(); i++) {

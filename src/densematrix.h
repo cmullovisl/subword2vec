@@ -61,6 +61,7 @@ class DenseMatrix : public Matrix {
     return n_;
   }
   void zero();
+  void one();
   void uniform(real, unsigned int, int32_t);
 
   void multiplyRow(const Vector& nums, int64_t ib = 0, int64_t ie = -1);

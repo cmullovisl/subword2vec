@@ -35,10 +35,15 @@ void DenseMatrix::zero() {
   std::fill(data_.begin(), data_.end(), 0.0);
 }
 
+void DenseMatrix::one() {
+  std::fill(data_.begin(), data_.end(), 1.0);
+}
+
 void DenseMatrix::uniformThread(real a, int block, int32_t seed) {
   std::minstd_rand rng(block + seed);
   std::uniform_real_distribution<> uniform(-a, a);
-  int64_t blockSize = (m_ * n_) / 10;
+  //int64_t blockSize = (m_ * n_) / 10;
+  int64_t blockSize = (m_ * n_);
   for (int64_t i = blockSize * block;
        i < (m_ * n_) && i < blockSize * (block + 1);
        i++) {
@@ -136,6 +141,7 @@ void DenseMatrix::addVectorToRow(const Vector& vec, int64_t i, const DenseMatrix
   assert(i >= 0);
   assert(i < m_);
   assert(vec.size() == n_);
+  assert(k < W.size(0));
   for (int64_t j = 0; j < n_; j++) {
     data_[i * n_ + j] += W.at(k, j) * vec[j];
   }
@@ -163,6 +169,7 @@ void DenseMatrix::addRowToVector(Vector& x, int32_t i, const DenseMatrix& W, int
   assert(i >= 0);
   assert(i < this->size(0));
   assert(x.size() == this->size(1));
+  assert(k < W.size(0));
   for (int64_t j = 0; j < n_; j++) {
     x[j] += W.at(k, j) * at(i, j);
   }
