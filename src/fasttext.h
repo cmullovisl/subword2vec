@@ -117,6 +117,8 @@ class FastText {
 
   void saveOutput(const std::string& filename);
 
+  void savePositionWeights(const std::string& filename);
+
   void loadModel(std::istream& in);
 
   void loadModel(const std::string& filename);

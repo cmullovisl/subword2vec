@@ -169,6 +169,27 @@ void FastText::saveOutput(const std::string& filename) {
   ofs.close();
 }
 
+void FastText::savePositionWeights(const std::string& filename) {
+  std::ofstream ofs(filename);
+  if (!ofs.is_open()) {
+    throw std::invalid_argument(
+        filename + " cannot be opened for saving vectors!");
+  }
+  if (quant_) {
+    throw std::invalid_argument(
+        "Option -saveOutput is not supported for quantized models.");
+  }
+  int32_t n = position_weights_->size(0);
+  ofs << n << " " << args_->dim << std::endl;
+  Vector vec(args_->dim);
+  for (int32_t i = 0; i < n; i++) {
+    vec.zero();
+    vec.addRow(*position_weights_, i);
+    ofs << vec << std::endl;
+  }
+  ofs.close();
+}
+
 bool FastText::checkModel(std::istream& in) {
   int32_t magic;
   in.read((char*)&(magic), sizeof(int32_t));
@@ -750,6 +771,9 @@ void FastText::train(const Args& args, const TrainCallback& callback) {
   //position_weights_->uniform(std::sqrt(3.0) / std::sqrt(args_->dim), args_->thread, args_->seed);
   if (!args_->pretrainedPositionWeights.empty()) {
     std::ifstream pdwfs(args_->pretrainedPositionWeights, std::ifstream::binary);
+    if (!pdwfs.is_open()) {
+      throw std::invalid_argument(args_->pretrainedPositionWeights + " cannot be opened for saving!");
+    }
     position_weights_->load(pdwfs);
     pdwfs.close();
 
