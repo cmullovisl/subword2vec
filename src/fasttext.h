@@ -73,7 +73,7 @@ class FastText {
       real lr,
       const std::vector<int32_t>& line,
       const std::vector<int32_t>& labels);
-  void cbow(Model::State& state, real lr, const std::vector<int32_t>& line);
+  void cbow(Model::State& state, real lr, const std::vector<int32_t>& line, bool learn_pdw = false);
   void skipgram(Model::State& state, real lr, const std::vector<int32_t>& line);
   std::vector<int32_t> selectEmbeddings(int32_t cutoff) const;
   void precomputeWordVectors(DenseMatrix& wordVectors);

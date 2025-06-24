@@ -73,7 +73,8 @@ void Model::update(
     //int32_t middle,
     const std::vector<int32_t>& pos,
     real lr,
-    State& state) {
+    State& state,
+    bool learn_pdw) {
   if (input.size() == 0) {
     return;
   }
@@ -87,15 +88,17 @@ void Model::update(
   if (normalizeGradient_) {
     grad.mul(1.0 / input.size());
   }
-  //auto k = wp_->rows() / 2 - middle;
-  //for (auto it = input.cbegin(); it != input.cend(); ++it, ++k) {
-  //  wi_->addVectorToRow(grad, *it, 1.0);
-  //  //wi_->addVectorToRow(grad, *it, wp_, k);
-  //}
   auto itPos = pos.cbegin();
   for (auto it = input.cbegin(); it != input.cend(); ++it, ++itPos) {
-    //wi_->addVectorToRow(grad, *it, 1.0);
     wi_->addVectorToRow(grad, *it, *wp_, *itPos);
+  }
+
+  if (learn_pdw) {
+    std::shared_ptr<DenseMatrix> wi = std::dynamic_pointer_cast<DenseMatrix>(wi_);
+    itPos = pos.cbegin();
+    for (auto it = input.cbegin(); it != input.cend(); ++it, ++itPos) {
+      wp_->addVectorToRowAndClip(grad, *itPos, *wi, *it, 1.0);
+    }
   }
 }
 

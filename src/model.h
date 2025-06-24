@@ -71,7 +71,8 @@ class Model {
       int32_t targetIndex,
       const std::vector<int32_t>& pos,
       real lr,
-      State& state);
+      State& state,
+      bool learn_pdw = false);
   void computeHidden(const std::vector<int32_t>& input, const std::vector<int32_t>& pos, State& state) const;
 
   real std_log(real) const;

@@ -147,6 +147,18 @@ void DenseMatrix::addVectorToRow(const Vector& vec, int64_t i, const DenseMatrix
   }
 }
 
+void DenseMatrix::addVectorToRowAndClip(const Vector& vec, int64_t i, const DenseMatrix& W, int32_t k, real clip) {
+  assert(i >= 0);
+  assert(i < m_);
+  assert(vec.size() == n_);
+  assert(k < W.size(0));
+  real lower = 0.0;
+  for (int64_t j = 0; j < n_; j++) {
+    //data_[i * n_ + j] += W.at(k, j) * vec[j];
+    data_[i * n_ + j] = std::max(std::min(data_[i * n_ + j] + W.at(k, j) * vec[j], clip), lower);
+  }
+}
+
 void DenseMatrix::addRowToVector(Vector& x, int32_t i) const {
   assert(i >= 0);
   assert(i < this->size(0));

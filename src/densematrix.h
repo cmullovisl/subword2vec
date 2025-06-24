@@ -73,6 +73,7 @@ class DenseMatrix : public Matrix {
   real dotRow(const Vector&, int64_t) const override;
   void addVectorToRow(const Vector&, int64_t, real) override;
   void addVectorToRow(const Vector&, int64_t, const DenseMatrix&, int32_t);
+  void addVectorToRowAndClip(const Vector&, int64_t, const DenseMatrix&, int32_t, real);
   void addRowToVector(Vector& x, int32_t i) const override;
   void addRowToVector(Vector& x, int32_t i, real a) const override;
   //void addRowToVector(Vector& x, int32_t i, const DenseMatrix& W, int32_t k) const;

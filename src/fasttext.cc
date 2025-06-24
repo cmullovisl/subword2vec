@@ -408,7 +408,8 @@ void FastText::supervised(
 void FastText::cbow(
     Model::State& state,
     real lr,
-    const std::vector<int32_t>& line) {
+    const std::vector<int32_t>& line,
+    bool learn_pdw) {
   std::vector<int32_t> bow;
   std::vector<int32_t> pos;
   std::uniform_int_distribution<> uniform(1, args_->ws);
@@ -423,7 +424,7 @@ void FastText::cbow(
         pos.insert(pos.end(), ngrams.size(), c > 0 ? args_->ws + c - 1 : args_->ws + c);
       }
     }
-    model_->update(bow, line, w, pos, lr, state);
+    model_->update(bow, line, w, pos, lr, state, learn_pdw);
   }
 }
 
@@ -664,7 +665,7 @@ void FastText::trainThread(int32_t threadId, const TrainCallback& callback) {
         supervised(state, lr, line, labels);
       } else if (args_->model == model_name::cbow) {
         localTokenCount += dict_->getLine(ifs, line, state.rng);
-        cbow(state, lr, line);
+        cbow(state, lr, line, threadId == 0);
       }
       if (localTokenCount > args_->lrUpdateRate) {
         tokenCount_ += localTokenCount;
