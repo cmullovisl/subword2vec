@@ -9,6 +9,7 @@
 #include "fasttext.h"
 #include "loss.h"
 #include "quantmatrix.h"
+#include "affinequantmatrix.h"
 
 #include <algorithm>
 #include <iomanip>
@@ -272,7 +273,11 @@ void FastText::loadModel(std::istream& in) {
   in.read((char*)&quant_input, sizeof(bool));
   if (quant_input) {
     quant_ = true;
-    input_ = std::make_shared<QuantMatrix>();
+    if (args_->model == model_name::sup) {
+      input_ = std::make_shared<QuantMatrix>();
+    } else {
+      input_ = std::make_shared<AffineQuantMatrix>();
+    }
   }
   input_->load(in);
 
@@ -287,7 +292,8 @@ void FastText::loadModel(std::istream& in) {
   if (quant_ && args_->qout) {
     output_ = std::make_shared<QuantMatrix>();
   }
-  output_->load(in);
+  if (!quant_input)
+    output_->load(in);
 
   buildModel();
 }
@@ -345,8 +351,14 @@ std::vector<int32_t> FastText::selectEmbeddings(int32_t cutoff) const {
 
 void FastText::quantize(const Args& qargs, const TrainCallback& callback) {
   if (args_->model != model_name::sup) {
-    throw std::invalid_argument(
-        "For now we only support quantization of supervised models");
+    if (qargs.cutoff > 0) {
+      throw std::invalid_argument(
+          "Cutoff is only supported for supervised models");
+    }
+    if (qargs.retrain) {
+      throw std::invalid_argument(
+          "Retrain is only supported for supervised models");
+    }
   }
   args_->input = qargs.input;
   args_->qout = qargs.qout;
@@ -378,12 +390,23 @@ void FastText::quantize(const Args& qargs, const TrainCallback& callback) {
       startThreads(callback);
     }
   }
-  input_ = std::make_shared<QuantMatrix>(
-      std::move(*(input.get())), qargs.dsub, qargs.qnorm);
+  if (args_->model == model_name::sup) {
+    input_ = std::make_shared<QuantMatrix>(
+        std::move(*(input.get())), qargs.dsub, qargs.qnorm);
+  } else {
+    input_ = std::make_shared<AffineQuantMatrix>(std::move(*(input.get())));
+  }
 
   if (args_->qout) {
-    output_ = std::make_shared<QuantMatrix>(
-        std::move(*(output.get())), 2, qargs.qnorm);
+    if (args_->model == model_name::sup) {
+      output_ = std::make_shared<QuantMatrix>(
+          std::move(*(output.get())), 2, qargs.qnorm);
+    } else {
+      output_ = std::make_shared<AffineQuantMatrix>(std::move(*(output.get())));
+    }
+  } else {
+    // zero size matrix for now
+    output_ = std::make_shared<DenseMatrix>(args_->dim, 0);
   }
   quant_ = true;
   auto loss = createLoss(output_);

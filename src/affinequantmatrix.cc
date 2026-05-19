@@ -18,9 +18,9 @@ AffineQuantMatrix::AffineQuantMatrix() : Matrix() {}
 
 AffineQuantMatrix::AffineQuantMatrix(DenseMatrix&& mat)
     : Matrix(mat.size(0), mat.size(1)) {
-  //data_.resize(m_ * n_ / (sizeof(real) / sizeof(uint8_t)));
   data_.resize(m_ * n_);
   row_scales_.resize(m_);
+  row_zeros_.resize(m_);
   col_scales_.resize(n_);
   quantize(std::forward<DenseMatrix>(mat));
 }
@@ -126,19 +126,31 @@ void AffineQuantMatrix::averageRowsToVector(Vector& x, const std::vector<int32_t
 }
 
 void AffineQuantMatrix::save(std::ostream& out) const {
-  // TODO
-  throw std::runtime_error("Not yet implemented.");
+  out.write((char*)&m_, sizeof(int64_t));
+  out.write((char*)&n_, sizeof(int64_t));
+  out.write((char*)&qmin, sizeof(real));
+  out.write((char*)&qmax, sizeof(real));
+  out.write((char*)col_scales_.data(), col_scales_.size() * sizeof(real));
+  out.write((char*)row_scales_.data(), row_scales_.size() * sizeof(real));
+  out.write((char*)row_zeros_.data(), row_zeros_.size() * sizeof(real));
+  out.write((char*)data_.data(), m_ * n_ * sizeof(uint8_t));
 }
 
 void AffineQuantMatrix::load(std::istream& in) {
-  DenseMatrix dense;
-  dense.load(in);
-  m_ = dense.rows();
-  n_ = dense.cols();
+  in.read((char*)&m_, sizeof(int64_t));
+  in.read((char*)&n_, sizeof(int64_t));
+  in.read((char*)&qmin, sizeof(real));
+  in.read((char*)&qmax, sizeof(real));
+
+  col_scales_.resize(cols());
+  row_scales_.resize(rows());
+  row_zeros_.resize(rows());
   data_.resize(m_ * n_);
-  row_scales_.resize(m_);
-  col_scales_.resize(n_);
-  quantize(std::forward<DenseMatrix>(dense));
+
+  in.read((char*)col_scales_.data(), cols() * sizeof(real));
+  in.read((char*)row_scales_.data(), rows() * sizeof(real));
+  in.read((char*)row_zeros_.data(), rows() * sizeof(real));
+  in.read((char*)data_.data(), m_ * n_ * sizeof(uint8_t));
 }
 
 void AffineQuantMatrix::dump(std::ostream&) const {
