@@ -8,7 +8,7 @@
 
 CXX = c++
 CXXFLAGS = -pthread -std=c++17 -march=native
-OBJS = args.o autotune.o matrix.o dictionary.o loss.o productquantizer.o densematrix.o quantmatrix.o vector.o model.o utils.o meter.o fasttext.o
+OBJS = args.o autotune.o matrix.o dictionary.o loss.o productquantizer.o densematrix.o quantmatrix.o affinequantmatrix.o vector.o model.o utils.o meter.o fasttext.o
 INCLUDES = -I.
 
 opt: CXXFLAGS += -O3 -funroll-loops -DNDEBUG
@@ -50,6 +50,9 @@ densematrix.o: src/densematrix.cc src/densematrix.h src/utils.h src/matrix.h
 quantmatrix.o: src/quantmatrix.cc src/quantmatrix.h src/utils.h src/matrix.h
 	$(CXX) $(CXXFLAGS) -c src/quantmatrix.cc
 
+affinequantmatrix.o: src/affinequantmatrix.cc src/affinequantmatrix.h src/utils.h src/matrix.h
+	$(CXX) $(CXXFLAGS) -c src/affinequantmatrix.cc
+
 vector.o: src/vector.cc src/vector.h src/utils.h
 	$(CXX) $(CXXFLAGS) -c src/vector.cc
 
@@ -74,7 +77,7 @@ clean:
 
 EMCXX = em++
 EMCXXFLAGS = --bind --std=c++11 -s WASM=1 -s ALLOW_MEMORY_GROWTH=1 -s "EXTRA_EXPORTED_RUNTIME_METHODS=['addOnPostRun', 'FS']" -s "DISABLE_EXCEPTION_CATCHING=0" -s "EXCEPTION_DEBUG=1" -s "FORCE_FILESYSTEM=1" -s "MODULARIZE=1" -s "EXPORT_ES6=1" -s 'EXPORT_NAME="FastTextModule"' -Isrc/
-EMOBJS = args.bc autotune.bc matrix.bc dictionary.bc loss.bc productquantizer.bc densematrix.bc quantmatrix.bc vector.bc model.bc utils.bc meter.bc fasttext.bc main.bc
+EMOBJS = args.bc autotune.bc matrix.bc dictionary.bc loss.bc productquantizer.bc densematrix.bc quantmatrix.bc affinequantmatrix.bc vector.bc model.bc utils.bc meter.bc fasttext.bc main.bc
 
 
 main.bc: webassembly/fasttext_wasm.cc
@@ -103,6 +106,9 @@ densematrix.bc: src/densematrix.cc src/densematrix.h src/utils.h src/matrix.h
 
 quantmatrix.bc: src/quantmatrix.cc src/quantmatrix.h src/utils.h src/matrix.h
 	$(EMCXX) $(EMCXXFLAGS) src/quantmatrix.cc -o quantmatrix.bc
+
+affinequantmatrix.bc: src/affinequantmatrix.cc src/affinequantmatrix.h src/utils.h src/matrix.h
+	$(EMCXX) $(EMCXXFLAGS) src/affinequantmatrix.cc -o affinequantmatrix.bc
 
 vector.bc: src/vector.cc src/vector.h src/utils.h
 	$(EMCXX) $(EMCXXFLAGS)  src/vector.cc -o vector.bc
