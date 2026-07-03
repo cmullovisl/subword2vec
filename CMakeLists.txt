@@ -20,6 +20,8 @@ include_directories(fasttext)
 set(CMAKE_CXX_FLAGS " -pthread -std=c++17 -funroll-loops -O3 -march=native")
 
 set(HEADER_FILES
+    src/affinequantmatrix.h
+    src/aligned.h
     src/args.h
     src/autotune.h
     src/densematrix.h
@@ -36,6 +38,7 @@ set(HEADER_FILES
     src/vector.h)
 
 set(SOURCE_FILES
+    src/affinequantmatrix.cc
     src/args.cc
     src/autotune.cc
     src/densematrix.cc
